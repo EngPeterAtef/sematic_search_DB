@@ -19,13 +19,15 @@ class VecDB:
         self.iterations = 32  # number of iterations for kmeans
         self.index = None
         self.file_path = file_path
-        self.database_size = 0
-        self.vector_len = 70
         if new_db:
+            self.database_size = 0
             # just open new file to delete the old one
             with open(self.file_path, "w") as fout:
                 # if you need to add any head to the file
                 pass
+        else:
+            # get the size of the database
+            self.database_size = sum(1 for line in open(self.file_path))
 
     def insert_records(
         self, rows: List[Dict[int, Annotated[List[float], 70]]], build_index=True
@@ -36,13 +38,10 @@ class VecDB:
             # and if the index algorithm requires it
             self.database_size += len(rows)
 
-            pca = PCA(n_components=self.vector_len // 2)
             # print("database_size:", self.database_size)
             for row in rows:
                 # get id and embed from dictionary
                 id, embed = row["id"], row["embed"]
-                # use pca to reduce the size of the embed to 35 (70/2)
-                embed = pca.fit_transform(embed)
                 # convert row to string to write it to the database file
                 # NOTE: Convert str(e) to bytes to reduce the size of the file
                 # float should be 4 bytes, but str(e) is more than that
@@ -52,7 +51,7 @@ class VecDB:
         # build index after inserting all records,
         # whether on new records only or on the whole database
         if build_index:
-            self._build_index()
+            self.build_index()
 
     # Worst case implementation for retrieve
     # Because it is sequential search
@@ -90,7 +89,7 @@ class VecDB:
                 f"./index_{self.database_size}/index_{centroid}.dta",
                 dtype="float32",
                 mode="r",
-                shape=(len(self.index[centroid]), self.vector_len + 1),
+                shape=(len(self.index[centroid]), 71),
             )
             # print number of vectors in this cluster
             print(f"centroid {centroid} shape:", fp.shape)
@@ -165,7 +164,7 @@ class VecDB:
 
         return cosine_similarity.squeeze()
 
-    def _build_index(self):
+    def build_index(self):
         print("Building index...")
         # read the database file from csv file
         # id_of_dataset = np.loadtxt(
@@ -184,7 +183,7 @@ class VecDB:
             delimiter=",",
             skiprows=0,
             dtype=np.float32,
-            usecols=range(1, self.vector_len + 1),
+            usecols=range(1, 71),
             max_rows=min(min_batch_size, int(self.database_size * 0.5))
             if self.database_size >= 10**6
             else None,
@@ -221,7 +220,7 @@ class VecDB:
                 f"./index_{self.database_size}/index_{i}.dta",
                 dtype="float32",
                 mode="w+",
-                shape=(len(cluster), self.vector_len + 1),
+                shape=(len(cluster), 71),
             )
             for n, id in enumerate(cluster):
                 new_cluster[n][0] = id
@@ -240,7 +239,7 @@ class VecDB:
                     delimiter=",",
                     skiprows=i,
                     dtype=np.float32,
-                    usecols=range(1, self.vector_len+1),
+                    usecols=range(1, 71),
                     max_rows=batch_size
                     if i + batch_size < self.database_size
                     else None,
@@ -268,29 +267,30 @@ class VecDB:
                     cluster = self.index[c]
 
                     file_path = f"./index_{self.database_size}/index_{c}.dta"
+                    try:
+                        file_size = os.path.getsize(file_path)
 
-                    file_size = os.path.getsize(file_path)
+                        # Calculate the number of rows, knowing each row has 71 columns of type float32 (4 bytes each)
+                        num_columns = 71
 
-                    # Calculate the number of rows, knowing each row has 71 columns of type float32 (4 bytes each)
+                        bytes_per_row = num_columns * 4  # float32 has 4 bytes
 
-                    bytes_per_row = (self.vector_len + 1) * 4  # float32 has 4 bytes
-
-                    num_rows = file_size // bytes_per_row
-                    # print("num_rows:", num_rows)
-                    if num_rows != 0:
+                        num_rows = file_size // bytes_per_row
+                        # print("num_rows:", num_rows)
+                        # if num_rows != 0:
                         old_cluster = np.memmap(
                             file_path,
                             dtype="float32",
                             mode="r",
-                            shape=(num_rows, (self.vector_len + 1)),
+                            shape=(num_rows, num_columns),
                         )
                         old_cluster_copy = np.array(old_cluster)
                         old_cluster.flush()
                         del old_cluster
-                    else:
+                    except FileNotFoundError:
                         old_cluster = None
                         old_cluster_copy = None
-                    new_shape = (len(cluster), (self.vector_len + 1))
+                    new_shape = (len(cluster), num_columns)
                     # create a new cluster with the new shape
                     new_cluster = np.memmap(
                         file_path, dtype="float32", mode="w+", shape=new_shape
@@ -324,8 +324,8 @@ class VecDB:
         # del assignments
 
         # convert the index to numpy array
-        # self.index = np.array(self.index)
-        # print("index shape:", self.index.shape)
+        self.index = np.array(self.index)
+        print("index shape:", self.index.shape)
         # self.index = np.array(self.index)
         # save the index clusters to .csv files
         # for i, cluster in enumerate(self.index):
