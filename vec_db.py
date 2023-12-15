@@ -108,7 +108,7 @@ class VecDB:
                     shape=(self.length_of_clusters[centroid], 71),
                 )
                 # print number of vectors in this cluster
-                print(f"centroid {centroid} shape:", fp.shape)
+                # print(f"centroid {centroid} shape:", fp.shape)
             except FileNotFoundError:
                 continue
             id = fp[:, 0].astype(np.int32)
@@ -248,8 +248,8 @@ class VecDB:
             1
         ]  # returns a label to each row in that array
 
-        print("assignments len:", len(assignments))
-        print("assignments:", assignments)
+        # print("assignments len:", len(assignments))
+        # print("assignments:", assignments)
         for n, k in enumerate(assignments):
             # n is the index of the vector
             # k is the index of the cluster
@@ -307,7 +307,7 @@ class VecDB:
                     1
                 ]  # returns a label to each row in that array
                 # top_centriods = [np.argmax(self._vectorized_cal_score(self.centroids, vector)) for vector in dataset]
-                print("top_centriods shape:", len(top_centriods))
+                # print("top_centriods shape:", len(top_centriods))
                 # print("top_centriods:", top_centriods)
                 # append the cluster id of each vector to the assignments list
                 # assignments = np.append(
