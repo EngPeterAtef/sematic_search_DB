@@ -182,6 +182,11 @@ class VecDB:
 
     def build_index(self):
         print("Building index...")
+        isExist = os.path.exists(f"./index_{self.database_size}")
+
+        if not isExist:
+            # Create a new directory because it does not exist
+            os.makedirs(f"./index_{self.database_size}")
         # read the database file from csv file
         # id_of_dataset = np.loadtxt(
         #     self.file_path, delimiter=",", skiprows=0, dtype=np.int32, usecols=0
