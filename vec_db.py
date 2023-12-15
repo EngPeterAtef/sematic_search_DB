@@ -75,7 +75,8 @@ class VecDB:
         # then retrieve the actual records from the database
         scores = []
         # get the top_k centroids
-        k = int(2 * top_k * np.sqrt(self.num_part))
+        k = int(4 * np.sqrt(self.num_part))
+        # k = int(2 * top_k * np.sqrt(self.num_part))
         top_centroids = self._get_top_centroids(query, k)
         # print("top_centroids:", top_centroids)
         # load kmeans model
