@@ -3,6 +3,7 @@ import numpy as np
 # from scipy.cluster.vq import kmeans2
 from faiss import Kmeans
 from typing import Dict, List, Annotated
+
 # from sklearn.decomposition import (
 #     PCA,
 # )  # TODO: use PCA to reduce the dimension of the vectors
@@ -45,42 +46,24 @@ class VecDB:
                 shape=(self.database_size, 71),
             )
 
-    # def insert_records(
-    #     self, rows: List[Dict[int, Annotated[List[float], 70]]], build_index=True
-    # ):
-    def insert_records(self, vectors, build_index=True):
-        # rows is a list of dictionary, each dictionary is a record
-        # with open(self.file_path, "a+") as fout:
-        #     # to start the new index from it, if the database is not empty,
-        #     # and if the index algorithm requires it
-        #     self.database_size += rows.shape[0]
-
-        #     # print("database_size:", self.database_size)
-        #     for i in range(rows.shape[0]):
-        #         # get id and embed from dictionary
-        #         # id, embed = row["id"], row["embed"]
-        #         id = i
-        #         embed = rows[i]
-        #         # convert row to string to write it to the database file
-        #         # NOTE: Convert str(e) to bytes to reduce the size of the file
-        #         # float should be 4 bytes, but str(e) is more than that
-        #         # NOTE: try to take info from the embed, so you can use it to build the index
-        #         row_str = f"{id}," + ",".join([str(e) for e in embed])
-        #         fout.write(f"{row_str}\n")
-        self.database_size = vectors.shape[0]
+    def insert_records(
+        self, rows: List[Dict[int, Annotated[List[float], 70]]], build_index=True
+    ):
         self.database = np.memmap(
             self.file_path,
             dtype=np.float32,
             mode="w+",
-            shape=(vectors.shape[0], vectors.shape[1] + 1),
+            shape=(len(rows), 71),
         )
-        self.database[:, 0] = np.array([i for i in range(vectors.shape[0])])
-        self.database[:, 1:] = vectors[:]
+        self.database_size = len(rows)
+        # print("database_size:", self.database_size)
+        for i in range(len(rows)):
+            # get id and embed from dictionary
+            self.database[i, 0] = rows[i]["id"]
+            self.database[i, 1:] = rows[i]["embed"]
+
         self.database.flush()
 
-        # del fp
-        del vectors
-        gc.collect()
         # build index after inserting all records,
         # whether on new records only or on the whole database
         if build_index:
