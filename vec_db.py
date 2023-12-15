@@ -196,7 +196,7 @@ class VecDB:
         min_batch_size = 20 * 10**5
         batch_size = (
             min(min_batch_size, int(self.database_size * 0.5))
-            if self.database_size >= 10**6
+            if self.database_size >= 5 * 10**6
             else self.database_size
         )
         # dataset = np.loadtxt(
@@ -232,7 +232,7 @@ class VecDB:
         # (self.centroids, assignments) = kmeans2(
         #     dataset, self.num_part, iter=self.iterations
         # )
-        kmeans = Kmeans(70, self.num_part, niter=20, verbose=True)
+        kmeans = Kmeans(70, self.num_part, niter=self.iterations, verbose=True)
         kmeans.train(
             dataset,
             init_centroids=dataset[
@@ -275,7 +275,7 @@ class VecDB:
             # del cluster
         # del dataset
 
-        if self.database_size >= 10**6:
+        if self.database_size >= 5 * 10**6:
             # convert the assignments to list
             # assignments = assignments.tolist()
             # loop over the rest of the database to assign each vector to a cluster by appending the cluster id of this vector to the assignments list
